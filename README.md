@@ -13,7 +13,7 @@ Implementing 2 chess engines:
 
 # Setup 
 ```sh
-$ git clone https://github.com/SungJKK/chess_engines
+$ git clone https://github.com/SungJKK/chess_engines && cd chess_engines
 $ poetry install
 $ poetry shell
 $ # run programs
