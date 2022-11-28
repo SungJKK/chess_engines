@@ -37,4 +37,16 @@ $ conda config --env --set subdir osx-arm64
 
 
 # References
+- [Guide to Reinforcement Learning with Python and Tensorflow](https://rubikscode.net/2021/07/13/deep-q-learning-with-python-and-tensorflow-2-0/)
+- [Can Deep Reinforcement Learning Solve Chess?](https://towardsdatascience.com/can-deep-reinforcement-learning-solve-chess-b9f52855cd1e)
+- [Hacking Chess with Decision Making Deep Reinforcement Learning](https://towardsdatascience.com/hacking-chess-with-decision-making-deep-reinforcement-learning-173ed32cf503)
+- [AlphaZero paper](https://arxiv.org/abs/1712.01815)
+- [AlphaZero chess representation](https://www.chessprogramming.org/AlphaZero)
+
+- [python-chess python package](https://python-chess.readthedocs.io/en/latest/)
+- [gym-chess python package](https://github.com/iamlucaswolf/gym-chess)
 - [m1 mac tensorflow install](https://stackoverflow.com/questions/72964800/what-is-the-proper-way-to-install-tensorflow-on-apple-m1-in-2022) 
+- [tensorflow documentation](https://www.tensorflow.org/api_docs)
+
+
+
