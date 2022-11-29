@@ -1,6 +1,13 @@
 # Chess engines project
 Repository for AMS 325 final project.  
 
+# Todo
+- [ ] create custom environment to interact w agent & play chess game
+- [ ] split DQN agent class into another Neural Network class
+- [ ] move training step into DQN agent class method
+- [ ] check huber loss & improve neural network architecture
+
+
 # Table of Contents
 - [Description](#description)
 - [Setup](#setup)
