@@ -5,7 +5,7 @@ import random
 pieceValue = {"K":0, "Q":9, "R":5, "B":3, "N":3, "P":1,
               "k":0, "q":-9, "r":-5, "b":-3, "n":-3, "p":-1, 
               "None":0}
-# Subjective values for checkmate, which should be much greater than any "scoring" of the board.
+# Subjective value for checkmate, which should be much greater than any "scoring" of the board.
 checkmateVal = 1000
 
 # Piece values based on tables in https://www.chessprogramming.org/Simplified_Evaluation_Function 
@@ -203,10 +203,13 @@ def greedyMove(board):
     return bestMove
 
 # Maximizes score by minimizing opponent score (considers opponents move)
+# Should work for both sides
+# Randomly shuffle since the first move will always be the same if not shuffled, due to
+# the way scoring works with the function (won't change for ties, and same first values)
 def twomove_minimax(board):
-    turnVal = 1
+    turn = 1
     if(not board.turn):
-        turnVal = -1;
+        turn = -1;
     maxEval = checkmateVal
     legalmoves = list(board.legal_moves)
     random.shuffle(legalmoves)
@@ -224,7 +227,7 @@ def twomove_minimax(board):
             if(board.is_checkmate()):
                 Eval = checkmateVal
             else: 
-                Eval = -turnVal * scoreBoard(board)
+                Eval = -turn * scoreBoard(board)
             if(Eval > opp_maxEval):
                 opp_maxEval = Eval
             board.pop()
@@ -270,6 +273,7 @@ def basic_minimax(board, depth):
 # alpha-beta pruning https://en.wikipedia.org/wiki/Alpha%E2%80%93beta_pruning
 # With this function, we need to return an array, since need to keep track of the 
 # current best move as well as the current max/min, alpha, and beta value
+# Works for white 
 def improved_minimax(board, depth, alpha, beta):
     if depth == 0 or board.is_game_over():
         return [improvedScoreBoard(board), None]
@@ -310,24 +314,20 @@ def improved_minimax(board, depth, alpha, beta):
 # much simplier by using turn values similar to twomove_minimax, and by focusing solely
 # on maximizing the magnitude rather than maximizing/minimizing positive/negative values
 def final_minimax(board, depth, alpha, beta, maximizingWhite):
-    if maximizingWhite:
-        turn = 1;
-    else:
+    turn = 1
+    if not maximizingWhite:
         turn = -1;
     if depth == 0 or board.is_game_over():
         return [turn * improvedScoreBoard(board), None]
     maxEval = -checkmateVal
-    legalmoves = list(board.legal_moves)
-    random.shuffle(legalmoves)
-    for move in legalmoves:
+    for move in board.legal_moves:
         board.push(move)
         Eval = -final_minimax(board, depth-1, -beta, -alpha, not maximizingWhite)[0]
         board.pop()
         if(Eval > maxEval):
             maxEval = Eval
             bestMove = move
-        if(maxEval > alpha):
-            alpha = maxEval
+        alpha = max(alpha, maxEval)
         if(alpha >= beta):
             break
     return [maxEval, bestMove]
