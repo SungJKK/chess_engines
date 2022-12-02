@@ -205,10 +205,15 @@ def basic_minimax(board, depth):
             board.pop()
         return [minvalue, bestmove]
     
-def improved_minimax(board, depth):
+# same as naiveminimax, but actually looks for checkmate
+# next algorithm will use a scoring table to put pieces on optimal squares (better scoring method)
+# optimize timing
+# Need to return an array, since need to keep track of the current best move as well as the current max/min value
+# alpha-beta pruning https://en.wikipedia.org/wiki/Alpha%E2%80%93beta_pruning
+def improved_minimax(board, depth, alpha, beta):
     bestmove = None
     if depth == 0 or board.is_game_over():
-        return [improvedScoreBoard(board), None]
+        return [improvedScoreBoard(board), None, None, None]
     if board.turn:
         maxvalue = -checkmateVal
         for move in board.legal_moves:
@@ -216,11 +221,15 @@ def improved_minimax(board, depth):
             if(board.is_checkmate()):
                 value = checkmateVal
             else: 
-                value = improved_minimax(board, depth-1)[0]
+                value = improved_minimax(board, depth-1, -beta, -alpha)[0]
             if(value > maxvalue):
                 maxvalue = value
                 bestmove = move
             board.pop()
+            if (maxvalue > alpha):
+                alpha = maxvalue
+            if (alpha >= beta):
+                break
         return [maxvalue, bestmove]
     else:
         minvalue = checkmateVal
@@ -229,15 +238,16 @@ def improved_minimax(board, depth):
             if(board.is_checkmate()):
                 value = -checkmateVal
             else:
-                value = improved_minimax(board, depth-1)[0]
+                value = improved_minimax(board, depth-1, -beta, -alpha)[0]
             if(value < minvalue):
                 minvalue = value
                 bestmove = move
             board.pop()
+            if (minvalue > alpha):
+                alpha = minvalue
+            if (alpha >= beta):
+                break
         return [minvalue, bestmove]
-    
-gameOver = False
-board=chess.Board()
 
 # Below is code to run a game simulation of two move minimax and random move engines
 gameOver = False
@@ -245,7 +255,10 @@ board=chess.Board()
 
 while not gameOver:
     if board.turn: 
-        board.push(improved_minimax(board, 2)[1])
+        # White's move, so alpha starts off as lowest score (-checkmateVal) and beta as highest score (checkmateVal)
+        # Before alpha beta pruning depth 3 was slow, now able to do depth 4, and depth 5 faster than the previous 
+        # depth 4, but still really slow
+        board.push(improved_minimax(board, 2, -checkmateVal, checkmateVal)[1])
         print(board)
         print()
     else: 
