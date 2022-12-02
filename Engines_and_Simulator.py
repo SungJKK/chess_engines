@@ -99,13 +99,13 @@ Q_table =       [-.20,-.10,-.10, -.05, -.05,-.10,-.10,-.20,
                 -.10,  .05,  .05,  .05,  .05,  .05,  0,-.10,
                   0,  0,  .05,  .05,  .05,  .05,  0, -.05,
                   -.05,  0,  .05,  .05,  .05,  .05,  0, -.05,
-                -.10,  0,  .05,  .05,  .05,  .05,  0,-.10,
+                -.10,  0,  .05,  .05,  .05,  0,  0,-.10,
                 -.10,  0,  0,  0,  0,  0,  0,-.10,
                 -.20,-.10,-.10, -.05, -.05,-.10,-.10,-.20]
 
 q_table =       [-.20,-.10,-.10, -.05, -.05,-.10,-.10,-.20,
                 -.10,  0,  0,  0,  0,  0,  0,-.10,
-                -.10,  0,  .05,  .05,  .05,  .05,  0,-.10,
+                -.10,  0,  .05,  .05,  .05,  0,  0,-.10,
                  -.05,  0,  .05,  .05,  .05,  .05,  0, -.05,
                   0,  0,  .05,  .05,  .05,  .05,  0, -.05,
                 -.10,  .05,  .05,  .05,  .05,  .05,  0,-.10,
@@ -315,6 +315,7 @@ def improved_minimax(board, depth, alpha, beta):
 # on maximizing the magnitude rather than maximizing/minimizing positive/negative values
 def final_minimax(board, depth, alpha, beta, maximizingWhite):
     turn = 1
+    bestMove = randomMove(board)
     if not maximizingWhite:
         turn = -1;
     if depth == 0 or board.is_game_over():
@@ -322,7 +323,12 @@ def final_minimax(board, depth, alpha, beta, maximizingWhite):
     maxEval = -checkmateVal
     for move in board.legal_moves:
         board.push(move)
-        Eval = -final_minimax(board, depth-1, -beta, -alpha, not maximizingWhite)[0]
+        if(board.is_checkmate()):
+            Eval = turn * checkmateVal
+        elif(board.is_stalemate() or board.is_seventyfive_moves() or board.is_fivefold_repetition()):
+            Eval = 0
+        else:
+            Eval = -final_minimax(board, depth-1, -beta, -alpha, not maximizingWhite)[0]
         board.pop()
         if(Eval > maxEval):
             maxEval = Eval
@@ -340,12 +346,12 @@ print(improvedScoreBoard(board))
 while not gameOver:
     if board.turn: 
         # Alpha starts off as lowest value (-checkmateVal) and beta as highest 
-        # value (checkmateVal)
+        # value (checkmateVal), True since maximizing white
         board.push(final_minimax(board, 3, -checkmateVal, checkmateVal, True)[1])
         print(board)
         print()
     else: 
-        board.push(final_minimax(board, 3, -checkmateVal, checkmateVal, False)[1])
+        board.push(randomMove(board))
         print(board)
         print()
     # Checks to see if game is over for any reason, ends the while loop and prints the
@@ -355,6 +361,6 @@ while not gameOver:
         print(board.outcome().termination)
         print(board.turn)
     # To prevent any cases of games going too long
-    elif(board.fullmove_number >= 10):
+    elif(board.fullmove_number >= 100):
         gameOver = True
 print(board.fullmove_number)
