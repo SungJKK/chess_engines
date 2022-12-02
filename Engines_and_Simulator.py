@@ -1,26 +1,49 @@
 import chess
 import random
 
+# Values of all the pieces and pawns, positive for white and negative for black
 pieceValue = {"K":0, "Q":9, "R":5, "B":3, "N":3, "P":1,
               "k":0, "q":-9, "r":-5, "b":-3, "n":-3, "p":-1, 
               "None":0}
+# Subjective values for checkmate, which should be much greater than any "scoring" of the board.
 checkmateVal = 1000
-stalemateVal = 0
 
-# piece values based on tables in https://www.chessprogramming.org/Simplified_Evaluation_Function - slighly edited
+# Piece values based on tables in https://www.chessprogramming.org/Simplified_Evaluation_Function 
+# Slighly edited to better match my functions, 8x8 grids written as a 64 length list to represent 
+# the additional value a certain piece gets on a certain square
+
+# the library starts the bottom left of the board index 0, but the arrays start top left index 0, so
+# the tables may look a little weird, basically first row in the table is the last row on the board
 P_table =       [0,  0,  0,  0,  0,  0,  0,  0,
+                .05, .10, .10, -.20, -.20, .10, .10,  .05,
+                .05, -.05,-.10,  .10,  .10,-.10, -.05,  .05,
+                0,  0,  .10, .25, .25,  0,  0,  0,
+                .05,  .05, .10, .25, .25, .10,  .05,  .05,
+                .10, .10, .20, .30, .30, .20, .10, .10,
+                .50, .50, .50, .50, .50, .50, .50, .50,
+                0,  0,  0,  0,  0,  0,  0,  0]
+
+p_table =       [0,  0,  0,  0,  0,  0,  0,  0,
                 .50, .50, .50, .50, .50, .50, .50, .50,
                 .10, .10, .20, .30, .30, .20, .10, .10,
                 .05,  .05, .10, .25, .25, .10,  .05,  .05,
-                0,  0,  0, .20, .20,  0,  0,  0,
+                0,  0,  .10, .25, .25,  0,  0,  0,
                 .05, -.05,-.10,  0,  0,-.10, -.05,  .05,
                 .05, .10, .10, -.20, -.20, .10, .10,  .05,
                 0,  0,  0,  0,  0,  0,  0,  0]
 
-p_table = P_table[::-1]
 p_table = [-x for x in p_table]
 
-B_table =       [-.20, -.10, -.10, -.10, -.10, -.10, -.10, -.20,
+B_table =       [-.20, -.10, -.10, -.10, -.10, -.10 ,-.10, -.20,
+                -.10,  .05,  0,  0,  0,  0,  .05, -.10,
+                -.10, .10, .10, .10, .10, .10, .10, -.10,
+                -.10,  0, .10, .10, .10, .10,  0, -.10,
+                -.10,  .05,  .05, .10, .10,  .05,  .05, -.10,
+                -.10,  0,  .05, .10, .10,  .05,  0, -.10,
+                -.10, 0,  0,  0,  0,  0,  0, -.10,
+                -.20, -.10, -.10, -.10, -.10, -.10, -.10, -.20]
+
+b_table =       [-.20, -.10, -.10, -.10, -.10, -.10, -.10, -.20,
                 -.10, 0,  0,  0,  0,  0,  0, -.10,
                 -.10,  0,  .05, .10, .10,  .05,  0, -.10,
                 -.10,  .05,  .05, .10, .10,  .05,  .05, -.10,
@@ -29,22 +52,38 @@ B_table =       [-.20, -.10, -.10, -.10, -.10, -.10, -.10, -.20,
                 -.10,  .05,  0,  0,  0,  0,  .05, -.10,
                 -.20, -.10, -.10, -.10, -.10, -.10 ,-.10, -.20]
 
-b_table = B_table[::-1]
 b_table = [-x for x in b_table]
 
-N_table =       [-.50, -.40, -.30, -.30, -.30, -.30, -.40, -.50,
+N_table =       [-.50, -.20, -.10, -.10, -.10, -.10, -.20, -.50,
                 -.40, -.20,  0,  0,  0,  0, -.20, -.40,
+                -.30,  .05, .08, .05, .05, .08,  .05, -.30,
+                -.30,  0, .08, .10, .10, .08,  0, -.30,
+                -.30,  .05, .10, .10, .10, .10,  .05, -.30,
                 -.30,  0, .10, .15, .15, .10,  0, -.30,
-                -.30,  .05, .15, .20, .20, .15,  .05, -.30,
-                -.30,  0, .15, .20, .20, .15,  0, -.30,
-                -.30,  .05, .10, .15, .15, .10,  .05, -.30,
-                -.40, -.20,  0,  .05,  .05,  0, -.20, -.40,
+                -.40, -.20,  0,  0,  0,  0, -.20, -.40,
                 -.50, -.40, -.30, -.30, -.30, -.30, -.40, -.50]
 
-n_table = N_table[::-1] 
+n_table =       [-.50, -.40, -.30, -.30, -.30, -.30, -.40, -.50,
+                -.40, -.20,  0,  0,  0,  0, -.20, -.40,
+                -.30,  0, .10, .15, .15, .10,  0, -.30,
+                -.30,  .05, .10, .10, .10, .10,  .05, -.30,
+                -.30,  0, .08, .10, .10, .08,  0, -.30,
+                -.30,  .05, .08, .05, .05, .08,  .05, -.30,
+                -.40, -.20,  0,  .05,  .05,  0, -.20, -.40,
+                -.50, -.20, -.10, -.10, -.10, -.10, -.20, -.50]
+
 n_table = [-x for x in n_table]
 
-R_table =      [0,  0,  0,  0,  0,  0,  0,  0,
+R_table =      [0,  0,  0,  .05,  .05,  0,  0,  0,
+               -.05,  0,  0,  0,  0,  0,  0, -.05,
+               -.05,  0,  0,  0,  0,  0,  0, -.05,
+               -.05,  0,  0,  0,  0,  0,  0, -.05,
+               -.05,  0,  0,  0,  0,  0,  0, -.05,
+               -.05,  0,  0,  0,  0,  0,  0, -.05,
+               .05, .10, .10, .10, .10, .10, .10, .5,
+               0,  0,  0,  0,  0,  0,  0,  0]
+
+r_table =      [0,  0,  0,  0,  0,  0,  0,  0,
                .05, .10, .10, .10, .10, .10, .10, .5,
                -.05,  0,  0,  0,  0,  0,  0, -.05,
                -.05,  0,  0,  0,  0,  0,  0, -.05,
@@ -53,10 +92,18 @@ R_table =      [0,  0,  0,  0,  0,  0,  0,  0,
                -.05,  0,  0,  0,  0,  0,  0, -.05,
                0,  0,  0,  .05,  .05,  0,  0,  0]
 
-r_table = R_table[::-1]
 r_table = [-x for x in r_table]
 
 Q_table =       [-.20,-.10,-.10, -.05, -.05,-.10,-.10,-.20,
+                -.10,  0,  .05,  0,  0,  0,  0,-.10,
+                -.10,  .05,  .05,  .05,  .05,  .05,  0,-.10,
+                  0,  0,  .05,  .05,  .05,  .05,  0, -.05,
+                  -.05,  0,  .05,  .05,  .05,  .05,  0, -.05,
+                -.10,  0,  .05,  .05,  .05,  .05,  0,-.10,
+                -.10,  0,  0,  0,  0,  0,  0,-.10,
+                -.20,-.10,-.10, -.05, -.05,-.10,-.10,-.20]
+
+q_table =       [-.20,-.10,-.10, -.05, -.05,-.10,-.10,-.20,
                 -.10,  0,  0,  0,  0,  0,  0,-.10,
                 -.10,  0,  .05,  .05,  .05,  .05,  0,-.10,
                  -.05,  0,  .05,  .05,  .05,  .05,  0, -.05,
@@ -65,10 +112,19 @@ Q_table =       [-.20,-.10,-.10, -.05, -.05,-.10,-.10,-.20,
                 -.10,  0,  .05,  0,  0,  0,  0,-.10,
                 -.20,-.10,-.10, -.05, -.05,-.10,-.10,-.20]
 
-q_table = Q_table[::-1]
 q_table = [-x for x in q_table]
 
-K_table =       [-.30,-.40,-.40,-.50,-.50,-.40,-.40,-.30,
+
+K_table =       [.20, .30, .10,  0,  0, .10, .30, .20,
+                .20, .20,  0,  0,  0,  0, .20, .20,
+                -.10,-.20,-.20,-.20,-.20,-.20,-.20,-.10,
+                -.20,-.30,-.30,-.40,-.40,-.30,-.30,-.20,
+                -.30,-.40,-.40,-.50,-.50,-.40,-.40,-.30,
+                -.30,-.40,-.40,-.50,-.50,-.40,-.40,-.30,
+                -.30,-.40,-.40,-.50,-.50,-.40,-.40,-.30,
+                -.30,-.40,-.40,-.50,-.50,-.40,-.40,-.30]
+
+k_table =       [-.30,-.40,-.40,-.50,-.50,-.40,-.40,-.30,
                 -.30,-.40,-.40,-.50,-.50,-.40,-.40,-.30,
                 -.30,-.40,-.40,-.50,-.50,-.40,-.40,-.30,
                 -.30,-.40,-.40,-.50,-.50,-.40,-.40,-.30,
@@ -76,15 +132,21 @@ K_table =       [-.30,-.40,-.40,-.50,-.50,-.40,-.40,-.30,
                 -.10,-.20,-.20,-.20,-.20,-.20,-.20,-.10,
                 .20, .20,  0,  0,  0,  0, .20, .20,
                 .20, .30, .10,  0,  0, .10, .30, .20]
- 
-k_table = K_table[::-1]
+
 k_table = [-x for x in k_table]
  
 pieceTable = {"P": P_table, "p": p_table, "B": B_table, "b": b_table, "N": N_table, "n": n_table,
               "R": R_table, "r": r_table, "Q": Q_table, "q": q_table, "K": K_table, "k": k_table,
               "None": [0] * 64}
 
-# Suming up material using score tables
+# Basic scoring algorithm, simply sums up all the piece values for the pieces on the board
+def scoreBoard(board):
+    score = 0
+    for square in chess.SQUARES:
+        score = score + pieceValue[str(board.piece_at(square))]
+    return score
+
+# Same as scoreBoard function, but includes the bonus value of pieces using the 8x8 score tables
 def improvedScoreBoard(board):
     score = 0
     for square in chess.SQUARES:
@@ -92,26 +154,16 @@ def improvedScoreBoard(board):
         score = score + pieceValue[piece] + pieceTable[piece][square]
     return score
 
-# This will be used to determine opening, midgame and endgame
-def totalScoreBoard(board):
-    score = 0
-    for square in chess.SQUARES:
-        score = score + abs(pieceValue[str(board.piece_at(square))])
-    return score
-
-def scoreBoard(board):
-    score = 0
-    for square in chess.SQUARES:
-        score = score + pieceValue[str(board.piece_at(square))]
-    return score
-
+# Outputs a random move, used for testing
 def randomMove(board):
     legal_moves = list(board.legal_moves)
     return legal_moves[random. randint(0,len(legal_moves) - 1)]
 
+# Outputs the first move in the list, used for testing
 def firstMove(board):
     return list(board.legal_moves)[0]
 
+# Checkmate, check, capture, random move (CCCR) algorithm, prioritizes moves in that order
 def CCCR(board):
     CCCRmove = randomMove(board)
     score = -1
@@ -130,7 +182,9 @@ def CCCR(board):
         board.pop()
     return CCCRmove
 
+# Finds the move that causes the highest score after playing it (like taking a piece)
 def greedyMove(board):
+    bestMove = randomMove(board)
     turnVal = 1
     currentScore = 0
     if(not board.turn):
@@ -140,8 +194,6 @@ def greedyMove(board):
         board.push(move)
         if(board.is_checkmate()):
             currentScore = checkmateVal
-        elif(board.is_stalemate):
-            currentScore = stalemateVal
         else: 
             currentScore = turnVal * scoreBoard(board)
         if(currentScore > maxEval):
@@ -150,43 +202,47 @@ def greedyMove(board):
         board.pop()
     return bestMove
 
+# Maximizes score by minimizing opponent score (considers opponents move)
 def twomove_minimax(board):
     turnVal = 1
     if(not board.turn):
         turnVal = -1;
-    maxEval = -checkmateVal
-    for move in board.legal_moves:
-        opp_maxEval = checkmateVal
-        bestMove = randomMove(board)
+    maxEval = checkmateVal
+    legalmoves = list(board.legal_moves)
+    random.shuffle(legalmoves)
+    for move in legalmoves:
+        opp_maxEval = -checkmateVal
         board.push(move)
         if(board.is_checkmate()):
             board.pop();
             return move;
-        for nextmove in board.legal_moves:
-            currentScore = 0
+        nextmoves = list(board.legal_moves)
+        random.shuffle(nextmoves)
+        for nextmove in nextmoves:
+            Eval = 0
             board.push(nextmove)
             if(board.is_checkmate()):
-                currentScore = -checkmateVal
-            elif(board.is_stalemate):
-                currentScore = stalemateVal
+                Eval = checkmateVal
             else: 
-                currentScore = turnVal * scoreBoard(board)
-            if(currentScore < opp_maxEval):
-                opp_maxEval = currentScore
+                Eval = -turnVal * scoreBoard(board)
+            if(Eval > opp_maxEval):
+                opp_maxEval = Eval
             board.pop()
-            if(maxEval < opp_maxEval):
-                maxEval = opp_maxEval 
-                bestMove = move
+        if(maxEval > opp_maxEval):
+            maxEval = opp_maxEval 
+            bestMove = move
         board.pop()
     return bestMove
 
+# same as twomove_minimax but at a depth (can set to any number of moves)
 def basic_minimax(board, depth):
-    bestmove = None
     if depth == 0 or board.is_game_over():
         return [scoreBoard(board), None]
     if board.turn:
         maxvalue = -checkmateVal
-        for move in board.legal_moves:
+        legalmoves = list(board.legal_moves)
+        random.shuffle(legalmoves)
+        for move in legalmoves:
             board.push(move)
             value = basic_minimax(board, depth-1)[0]
             if(value > maxvalue):
@@ -196,7 +252,9 @@ def basic_minimax(board, depth):
         return [maxvalue, bestmove]
     else:
         minvalue = checkmateVal
-        for move in board.legal_moves:
+        legalmoves2 = list(board.legal_moves)
+        random.shuffle(legalmoves2)
+        for move in legalmoves2:
             board.push(move)
             value = basic_minimax(board, depth-1)[0]
             if(value < minvalue):
@@ -205,70 +263,98 @@ def basic_minimax(board, depth):
             board.pop()
         return [minvalue, bestmove]
     
-# same as naiveminimax, but actually looks for checkmate
-# next algorithm will use a scoring table to put pieces on optimal squares (better scoring method)
-# optimize timing
-# Need to return an array, since need to keep track of the current best move as well as the current max/min value
+    
+# A lot of improvements compared to basic_minimax: 
+# Looks for checkmate, uses an improved scoring system (explained near the function), 
+# optimize timing through alpha beta pruning (able to reach depth 4, slow at 5)
 # alpha-beta pruning https://en.wikipedia.org/wiki/Alpha%E2%80%93beta_pruning
+# With this function, we need to return an array, since need to keep track of the 
+# current best move as well as the current max/min, alpha, and beta value
 def improved_minimax(board, depth, alpha, beta):
-    bestmove = None
     if depth == 0 or board.is_game_over():
-        return [improvedScoreBoard(board), None, None, None]
+        return [improvedScoreBoard(board), None]
     if board.turn:
         maxvalue = -checkmateVal
-        for move in board.legal_moves:
+        legalmoves = list(board.legal_moves)
+        random.shuffle(legalmoves)
+        for move in legalmoves:
             board.push(move)
-            if(board.is_checkmate()):
-                value = checkmateVal
-            else: 
-                value = improved_minimax(board, depth-1, -beta, -alpha)[0]
+            value = improved_minimax(board, depth-1, -beta, -alpha)[0]
             if(value > maxvalue):
                 maxvalue = value
                 bestmove = move
             board.pop()
-            if (maxvalue > alpha):
+            if(maxvalue > alpha):
                 alpha = maxvalue
-            if (alpha >= beta):
+            if(alpha >= beta):
                 break
         return [maxvalue, bestmove]
     else:
         minvalue = checkmateVal
-        for move in board.legal_moves:
+        legalmoves2 = list(board.legal_moves)
+        random.shuffle(legalmoves2)
+        for move in legalmoves2:
             board.push(move)
-            if(board.is_checkmate()):
-                value = -checkmateVal
-            else:
-                value = improved_minimax(board, depth-1, -beta, -alpha)[0]
+            value = improved_minimax(board, depth-1, -beta, -alpha)[0]
             if(value < minvalue):
                 minvalue = value
                 bestmove = move
             board.pop()
-            if (minvalue > alpha):
-                alpha = minvalue
-            if (alpha >= beta):
+            if(minvalue < beta):
+                beta = minvalue
+            if(alpha >= beta):
                 break
         return [minvalue, bestmove]
 
-# Below is code to run a game simulation of two move minimax and random move engines
+# Previous function only worked for white, this one works for both sides, and is
+# much simplier by using turn values similar to twomove_minimax, and by focusing solely
+# on maximizing the magnitude rather than maximizing/minimizing positive/negative values
+def final_minimax(board, depth, alpha, beta, maximizingWhite):
+    if maximizingWhite:
+        turn = 1;
+    else:
+        turn = -1;
+    if depth == 0 or board.is_game_over():
+        return [turn * improvedScoreBoard(board), None]
+    maxEval = -checkmateVal
+    legalmoves = list(board.legal_moves)
+    random.shuffle(legalmoves)
+    for move in legalmoves:
+        board.push(move)
+        Eval = -final_minimax(board, depth-1, -beta, -alpha, not maximizingWhite)[0]
+        board.pop()
+        if(Eval > maxEval):
+            maxEval = Eval
+            bestMove = move
+        if(maxEval > alpha):
+            alpha = maxEval
+        if(alpha >= beta):
+            break
+    return [maxEval, bestMove]
+        
+
+# Below is code to run a game simulation
 gameOver = False
 board=chess.Board()
-
+print(improvedScoreBoard(board))
 while not gameOver:
     if board.turn: 
-        # White's move, so alpha starts off as lowest score (-checkmateVal) and beta as highest score (checkmateVal)
-        # Before alpha beta pruning depth 3 was slow, now able to do depth 4, and depth 5 faster than the previous 
-        # depth 4, but still really slow
-        board.push(improved_minimax(board, 2, -checkmateVal, checkmateVal)[1])
+        # Alpha starts off as lowest value (-checkmateVal) and beta as highest 
+        # value (checkmateVal)
+        board.push(final_minimax(board, 3, -checkmateVal, checkmateVal, True)[1])
         print(board)
         print()
     else: 
-        board.push(randomMove(board))
+        board.push(final_minimax(board, 3, -checkmateVal, checkmateVal, False)[1])
         print(board)
         print()
+    # Checks to see if game is over for any reason, ends the while loop and prints the
+    # outcome and whose turn it is (False means white checkmated black, and vice versa)
     if(board.is_game_over()):
         gameOver = True
         print(board.outcome().termination)
         print(board.turn)
-    elif(board.fullmove_number > 500):
+    # To prevent any cases of games going too long
+    elif(board.fullmove_number >= 10):
         gameOver = True
 print(board.fullmove_number)
