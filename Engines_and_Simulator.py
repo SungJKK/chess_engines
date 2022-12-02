@@ -1,11 +1,104 @@
 import chess
 import random
 
-pieceValue = {"K":0, "Q":9, "R":5, "B":3, "N":3, "P":1, "k":0, "q":-9, "r":-5, "b":-3, "n":-3, "p":-1, "None":0}
+pieceValue = {"K":0, "Q":9, "R":5, "B":3, "N":3, "P":1,
+              "k":0, "q":-9, "r":-5, "b":-3, "n":-3, "p":-1, 
+              "None":0}
 checkmateVal = 1000
 stalemateVal = 0
 
-# Sums the value of all the pieces on the board
+# piece values based on tables in https://www.chessprogramming.org/Simplified_Evaluation_Function - slighly edited
+P_table =       [0,  0,  0,  0,  0,  0,  0,  0,
+                .50, .50, .50, .50, .50, .50, .50, .50,
+                .10, .10, .20, .30, .30, .20, .10, .10,
+                .05,  .05, .10, .25, .25, .10,  .05,  .05,
+                0,  0,  0, .20, .20,  0,  0,  0,
+                .05, -.05,-.10,  0,  0,-.10, -.05,  .05,
+                .05, .10, .10, -.20, -.20, .10, .10,  .05,
+                0,  0,  0,  0,  0,  0,  0,  0]
+
+p_table = P_table[::-1]
+p_table = [-x for x in p_table]
+
+B_table =       [-.20, -.10, -.10, -.10, -.10, -.10, -.10, -.20,
+                -.10, 0,  0,  0,  0,  0,  0, -.10,
+                -.10,  0,  .05, .10, .10,  .05,  0, -.10,
+                -.10,  .05,  .05, .10, .10,  .05,  .05, -.10,
+                -.10,  0, .10, .10, .10, .10,  0, -.10,
+                -.10, .10, .10, .10, .10, .10, .10, -.10,
+                -.10,  .05,  0,  0,  0,  0,  .05, -.10,
+                -.20, -.10, -.10, -.10, -.10, -.10 ,-.10, -.20]
+
+b_table = B_table[::-1]
+b_table = [-x for x in b_table]
+
+N_table =       [-.50, -.40, -.30, -.30, -.30, -.30, -.40, -.50,
+                -.40, -.20,  0,  0,  0,  0, -.20, -.40,
+                -.30,  0, .10, .15, .15, .10,  0, -.30,
+                -.30,  .05, .15, .20, .20, .15,  .05, -.30,
+                -.30,  0, .15, .20, .20, .15,  0, -.30,
+                -.30,  .05, .10, .15, .15, .10,  .05, -.30,
+                -.40, -.20,  0,  .05,  .05,  0, -.20, -.40,
+                -.50, -.40, -.30, -.30, -.30, -.30, -.40, -.50]
+
+n_table = N_table[::-1] 
+n_table = [-x for x in n_table]
+
+R_table =      [0,  0,  0,  0,  0,  0,  0,  0,
+               .05, .10, .10, .10, .10, .10, .10, .5,
+               -.05,  0,  0,  0,  0,  0,  0, -.05,
+               -.05,  0,  0,  0,  0,  0,  0, -.05,
+               -.05,  0,  0,  0,  0,  0,  0, -.05,
+               -.05,  0,  0,  0,  0,  0,  0, -.05,
+               -.05,  0,  0,  0,  0,  0,  0, -.05,
+               0,  0,  0,  .05,  .05,  0,  0,  0]
+
+r_table = R_table[::-1]
+r_table = [-x for x in r_table]
+
+Q_table =       [-.20,-.10,-.10, -.05, -.05,-.10,-.10,-.20,
+                -.10,  0,  0,  0,  0,  0,  0,-.10,
+                -.10,  0,  .05,  .05,  .05,  .05,  0,-.10,
+                 -.05,  0,  .05,  .05,  .05,  .05,  0, -.05,
+                  0,  0,  .05,  .05,  .05,  .05,  0, -.05,
+                -.10,  .05,  .05,  .05,  .05,  .05,  0,-.10,
+                -.10,  0,  .05,  0,  0,  0,  0,-.10,
+                -.20,-.10,-.10, -.05, -.05,-.10,-.10,-.20]
+
+q_table = Q_table[::-1]
+q_table = [-x for x in q_table]
+
+K_table =       [-.30,-.40,-.40,-.50,-.50,-.40,-.40,-.30,
+                -.30,-.40,-.40,-.50,-.50,-.40,-.40,-.30,
+                -.30,-.40,-.40,-.50,-.50,-.40,-.40,-.30,
+                -.30,-.40,-.40,-.50,-.50,-.40,-.40,-.30,
+                -.20,-.30,-.30,-.40,-.40,-.30,-.30,-.20,
+                -.10,-.20,-.20,-.20,-.20,-.20,-.20,-.10,
+                .20, .20,  0,  0,  0,  0, .20, .20,
+                .20, .30, .10,  0,  0, .10, .30, .20]
+ 
+k_table = K_table[::-1]
+k_table = [-x for x in k_table]
+ 
+pieceTable = {"P": P_table, "p": p_table, "B": B_table, "b": b_table, "N": N_table, "n": n_table,
+              "R": R_table, "r": r_table, "Q": Q_table, "q": q_table, "K": K_table, "k": k_table,
+              "None": [0] * 64}
+
+# Suming up material using score tables
+def improvedScoreBoard(board):
+    score = 0
+    for square in chess.SQUARES:
+        piece = str(board.piece_at(square))
+        score = score + pieceValue[piece] + pieceTable[piece][square]
+    return score
+
+# This will be used to determine opening, midgame and endgame
+def totalScoreBoard(board):
+    score = 0
+    for square in chess.SQUARES:
+        score = score + abs(pieceValue[str(board.piece_at(square))])
+    return score
+
 def scoreBoard(board):
     score = 0
     for square in chess.SQUARES:
@@ -56,8 +149,6 @@ def greedyMove(board):
             bestMove = move
         board.pop()
     return bestMove
-gameOver = False
-board=chess.Board()
 
 def twomove_minimax(board):
     turnVal = 1
@@ -89,13 +180,72 @@ def twomove_minimax(board):
         board.pop()
     return bestMove
 
+def basic_minimax(board, depth):
+    bestmove = None
+    if depth == 0 or board.is_game_over():
+        return [scoreBoard(board), None]
+    if board.turn:
+        maxvalue = -checkmateVal
+        for move in board.legal_moves:
+            board.push(move)
+            value = basic_minimax(board, depth-1)[0]
+            if(value > maxvalue):
+                maxvalue = value
+                bestmove = move
+            board.pop()
+        return [maxvalue, bestmove]
+    else:
+        minvalue = checkmateVal
+        for move in board.legal_moves:
+            board.push(move)
+            value = basic_minimax(board, depth-1)[0]
+            if(value < minvalue):
+                minvalue = value
+                bestmove = move
+            board.pop()
+        return [minvalue, bestmove]
+    
+def improved_minimax(board, depth):
+    bestmove = None
+    if depth == 0 or board.is_game_over():
+        return [improvedScoreBoard(board), None]
+    if board.turn:
+        maxvalue = -checkmateVal
+        for move in board.legal_moves:
+            board.push(move)
+            if(board.is_checkmate()):
+                value = checkmateVal
+            else: 
+                value = improved_minimax(board, depth-1)[0]
+            if(value > maxvalue):
+                maxvalue = value
+                bestmove = move
+            board.pop()
+        return [maxvalue, bestmove]
+    else:
+        minvalue = checkmateVal
+        for move in board.legal_moves:
+            board.push(move)
+            if(board.is_checkmate()):
+                value = -checkmateVal
+            else:
+                value = improved_minimax(board, depth-1)[0]
+            if(value < minvalue):
+                minvalue = value
+                bestmove = move
+            board.pop()
+        return [minvalue, bestmove]
+    
+gameOver = False
+board=chess.Board()
+
 # Below is code to run a game simulation of two move minimax and random move engines
 gameOver = False
 board=chess.Board()
 
 while not gameOver:
     if board.turn: 
-        board.push(twomove_minimax(board))
+        board.push(improved_minimax(board, 2)[1])
         print(board)
         print()
     else: 
