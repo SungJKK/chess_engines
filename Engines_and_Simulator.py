@@ -207,6 +207,7 @@ def greedyMove(board):
 # Randomly shuffle since the first move will always be the same if not shuffled, due to
 # the way scoring works with the function (won't change for ties, and same first values)
 def twomove_minimax(board):
+    bestMove = randomMove(board)
     turn = 1
     if(not board.turn):
         turn = -1;
@@ -247,7 +248,10 @@ def basic_minimax(board, depth):
         random.shuffle(legalmoves)
         for move in legalmoves:
             board.push(move)
-            value = basic_minimax(board, depth-1)[0]
+            if(board.is_checkmate()):
+                value = checkmateVal
+            else:
+                value = basic_minimax(board, depth-1)[0]
             if(value > maxvalue):
                 maxvalue = value
                 bestmove = move
@@ -259,7 +263,10 @@ def basic_minimax(board, depth):
         random.shuffle(legalmoves2)
         for move in legalmoves2:
             board.push(move)
-            value = basic_minimax(board, depth-1)[0]
+            if(board.is_checkmate()):
+                value = -checkmateVal
+            else:
+                value = basic_minimax(board, depth-1)[0]
             if(value < minvalue):
                 minvalue = value
                 bestmove = move
@@ -283,7 +290,10 @@ def improved_minimax(board, depth, alpha, beta):
         random.shuffle(legalmoves)
         for move in legalmoves:
             board.push(move)
-            value = improved_minimax(board, depth-1, -beta, -alpha)[0]
+            if(board.is_checkmate()):
+                value = checkmateVal
+            else:
+                value = improved_minimax(board, depth-1, -beta, -alpha)[0]
             if(value > maxvalue):
                 maxvalue = value
                 bestmove = move
@@ -299,7 +309,10 @@ def improved_minimax(board, depth, alpha, beta):
         random.shuffle(legalmoves2)
         for move in legalmoves2:
             board.push(move)
-            value = improved_minimax(board, depth-1, -beta, -alpha)[0]
+            if(board.is_checkmate()):
+                value = -checkmateVal
+            else:
+                value = improved_minimax(board, depth-1, -beta, -alpha)[0]
             if(value < minvalue):
                 minvalue = value
                 bestmove = move
@@ -347,11 +360,11 @@ while not gameOver:
     if board.turn: 
         # Alpha starts off as lowest value (-checkmateVal) and beta as highest 
         # value (checkmateVal), True since maximizing white
-        board.push(final_minimax(board, 3, -checkmateVal, checkmateVal, True)[1])
+        board.push(improved_minimax(board, 2, -checkmateVal, checkmateVal, True)[1])
         print(board)
         print()
     else: 
-        board.push(randomMove(board))
+        board.push(improved_minimax(board))
         print(board)
         print()
     # Checks to see if game is over for any reason, ends the while loop and prints the
